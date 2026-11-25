@@ -3,7 +3,7 @@ const editor = byId('editor');
 const form = byId('item-form');
 const submit = form.querySelector('[type=submit]');
 const filters = [...document.querySelectorAll('[data-filter]')];
-const icons = { 냉장: '❄', 냉동: '◈', 실온: '☼' };
+const inventory = byId('inventory-title').closest('section');
 let entries = [];
 let filter = 'active';
 let editingId;
@@ -75,8 +75,7 @@ function button(label, run) {
 }
 
 function render() {
-  const active = entries.filter(item => !item.consumed);
-  const urgent = active.filter(item => item.daysLeft >= 0 && item.daysLeft <= 3);
+  const urgent = entries.filter(item => !item.consumed && isUrgent(item));
   const priority = byId('priority');
   priority.replaceChildren();
   if (urgent.length) {
@@ -89,8 +88,18 @@ function render() {
     priority.append(element('p', '3일 이내에 소비기한이 끝나는 식재료가 없어요.'));
   }
 
+  renderItems();
+}
+
+function isUrgent(item) {
+  return item.daysLeft >= 0 && item.daysLeft <= 3;
+}
+
+function renderItems() {
+  const active = entries.filter(item => !item.consumed);
   const visible = {
-    active, urgent,
+    active,
+    urgent: active.filter(isUrgent),
     expired: active.filter(item => item.daysLeft < 0),
     consumed: entries.filter(item => item.consumed),
   }[filter];
@@ -101,8 +110,6 @@ function render() {
   for (const item of visible) {
     const [label, tone] = status(item);
     const row = element('li', '', 'item');
-    const marker = element('span', icons[item.location], 'marker');
-    marker.setAttribute('aria-hidden', 'true');
     const details = element('div', '', 'details');
     details.append(element('strong', item.name), element('small', `${item.quantity} · ${item.location} · ${item.expires}`));
     const actions = element('div', '', 'actions');
@@ -113,7 +120,7 @@ function render() {
         if (confirm(`${item.name} 항목을 삭제할까요?`)) mutate(event.currentTarget, item, 'DELETE');
       }),
     );
-    row.append(marker, details, element('span', label, `badge ${tone}`), actions);
+    row.append(details, element('span', label, `badge ${tone}`), actions);
     list.append(row);
   }
 }
@@ -143,10 +150,17 @@ function edit(item) {
 byId('add').addEventListener('click', () => edit());
 byId('cancel').addEventListener('click', () => editor.close());
 editor.addEventListener('cancel', event => { if (submit.disabled) event.preventDefault(); });
-for (const control of filters) control.addEventListener('click', () => {
+function selectFilter(control) {
   filter = control.dataset.filter;
   for (const option of filters) option.setAttribute('aria-pressed', option === control);
-  render();
+  renderItems();
+}
+
+for (const control of filters) control.addEventListener('click', () => {
+  // Keep enough page height for the current scroll offset when results shrink.
+  const visibleHeight = document.documentElement.clientHeight - inventory.getBoundingClientRect().top;
+  inventory.style.minBlockSize = window.scrollY > 0 ? Math.max(0, Math.ceil(visibleHeight)) + 'px' : '';
+  selectFilter(control);
 });
 
 form.addEventListener('submit', async event => {
@@ -158,7 +172,7 @@ form.addEventListener('submit', async event => {
   try {
     const body = Object.fromEntries(new FormData(form));
     await request(editingId ? '/' + editingId : '', editingId ? 'PATCH' : 'POST', body);
-    if (!editingId) filters[0].click();
+    if (!editingId) selectFilter(filters[0]);
     editor.close();
     await load();
   } catch (error) {
@@ -185,7 +199,8 @@ async function showFridge(demo = false) {
   byId('auth').hidden = byId('startup').hidden = true;
   byId('fridge').hidden = byId('today').hidden = false;
   byId('logout').hidden = demo;
-  filters[0].click();
+  inventory.style.minBlockSize = '';
+  selectFilter(filters[0]);
   tell();
   try {
     await load();
