@@ -115,11 +115,17 @@ function renderItems() {
       item.name.normalize().toLowerCase().includes(query);
   });
   const refined = query || selectedLocations.size || selectedExpiries.size || view !== 'active';
-  const availableCategories = refined ? new Set(matches.map(item => item.category)) : null;
-  if (selectedCategory && availableCategories && !availableCategories.has(selectedCategory)) selectedCategory = '';
+  const categoryCounts = new Map();
+  for (const { category } of matches) {
+    categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+  }
+  if (refined && selectedCategory && !categoryCounts.has(selectedCategory)) selectedCategory = '';
   for (const control of categoryButtons) {
     const category = control.dataset.category;
-    control.hidden = Boolean(category && availableCategories && !availableCategories.has(category));
+    const count = category ? categoryCounts.get(category) ?? 0 : matches.length;
+    const label = category || '전체';
+    control.hidden = Boolean(category && refined && !count);
+    control.textContent = count ? `${label} (${count})` : label;
     control.setAttribute('aria-pressed', category === selectedCategory);
   }
   const visible = selectedCategory ? matches.filter(item => item.category === selectedCategory) : matches;
