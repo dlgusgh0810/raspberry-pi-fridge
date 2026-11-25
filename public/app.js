@@ -119,7 +119,9 @@ function render() {
   if (urgent.length) {
     for (const item of urgent.slice(0, 3)) {
       const card = element('div', '', 'priority-card');
-      card.append(element('strong', item.name), element('span', status(item)[0]));
+      const summary = element('div', '', 'item-summary');
+      summary.append(categoryIcon(item.category, 32), element('strong', item.name));
+      card.append(summary, element('span', status(item)[0]));
       priority.append(card);
     }
   } else {
@@ -254,6 +256,9 @@ function updateCategorySummary() {
 }
 
 categoryOptions.addEventListener('change', updateCategorySummary);
+categoryPicker.addEventListener('toggle', () => {
+  if (categoryPicker.open) categoryOptions.scrollTop = 0;
+});
 categoryOptions.addEventListener('click', event => {
   if (event.target.matches('input') && event.detail > 0) {
     categoryPicker.open = false;
