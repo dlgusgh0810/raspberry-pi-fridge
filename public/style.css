@@ -71,3 +71,7 @@ input, select { min-width: 0; padding: .62rem; border-radius: .5rem; border: 1px
 #switch-auth { margin-top: .7rem; }
 #auth-error { color: #8c3327; }
 #startup { padding-block: 2rem; }
+
+.categories { flex-wrap: nowrap; overflow-x: auto; padding: .4rem .2rem; margin-block: .4rem; }
+.categories button { flex: none; white-space: nowrap; }
+.inventory-order { color: #506559; font-size: .85rem; }

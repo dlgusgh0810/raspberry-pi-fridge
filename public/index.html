@@ -72,6 +72,8 @@
         </div>
         <button type="button" id="reset-filters">초기화</button>
       </div>
+      <div id="categories" class="categories filters" role="group" aria-label="식재료 분류"></div>
+      <p class="inventory-order">소비기한이 빠른 순 · 기한이 지난 식재료부터</p>
       <ul id="items" class="items"></ul>
     </section>
   </main>
@@ -81,6 +83,7 @@
       <h2 id="form-title">식재료 등록</h2>
       <label>식재료명 <input name="name" required maxlength="60" placeholder="예: 두부"></label>
       <label>수량 <input name="quantity" required maxlength="30" placeholder="예: 1 모"></label>
+      <label>분류 <select name="category" required></select></label>
       <label>보관 장소 <select name="location"><option>냉장</option><option>냉동</option><option>실온</option></select></label>
       <label>소비기한 <input name="expires" type="date" required min="0001-01-01" max="9999-12-31"></label>
       <p id="form-error" role="alert" hidden></p>

@@ -1,3 +1,5 @@
+import { categories, defaultCategory } from './categories.js';
+
 const byId = id => document.getElementById(id);
 const editor = byId('editor');
 const form = byId('item-form');
@@ -13,6 +15,7 @@ const selectedExpiries = new Set();
 const inventory = byId('inventory-title').closest('section');
 let entries = [];
 let view = 'active';
+let selectedCategory = '';
 let editingId;
 let registering = false;
 let authPending = false;
@@ -104,22 +107,31 @@ function isUrgent(item) {
 
 function renderItems() {
   const query = search.value.trim().normalize().toLowerCase();
-  const visible = entries.filter(item => {
+  const matches = entries.filter(item => {
     if ((view === 'active' && item.consumed) || (view === 'consumed' && !item.consumed)) return false;
     const expiry = item.daysLeft < 0 ? 'expired' : isUrgent(item) ? 'urgent' : 'fresh';
     return (!selectedLocations.size || selectedLocations.has(item.location)) &&
       (!selectedExpiries.size || selectedExpiries.has(expiry)) &&
       item.name.normalize().toLowerCase().includes(query);
   });
+  const refined = query || selectedLocations.size || selectedExpiries.size || view !== 'active';
+  const availableCategories = refined ? new Set(matches.map(item => item.category)) : null;
+  if (selectedCategory && availableCategories && !availableCategories.has(selectedCategory)) selectedCategory = '';
+  for (const control of categoryButtons) {
+    const category = control.dataset.category;
+    control.hidden = Boolean(category && availableCategories && !availableCategories.has(category));
+    control.setAttribute('aria-pressed', category === selectedCategory);
+  }
+  const visible = selectedCategory ? matches.filter(item => item.category === selectedCategory) : matches;
   byId('count').textContent = `${visible.length}개`;
   const list = byId('items');
   list.replaceChildren();
-  if (!visible.length) list.append(element('li', query || selectedLocations.size || selectedExpiries.size ? '조건에 맞는 식재료가 없어요.' : '표시할 식재료가 없어요.', 'empty'));
+  if (!visible.length) list.append(element('li', refined || selectedCategory ? '조건에 맞는 식재료가 없어요.' : '표시할 식재료가 없어요.', 'empty'));
   for (const item of visible) {
     const [label, tone] = status(item);
     const row = element('li', '', 'item');
     const details = element('div', '', 'details');
-    details.append(element('strong', item.name), element('small', `${item.quantity} · ${item.location} · ${item.expires}`));
+    details.append(element('strong', item.name), element('small', `${item.quantity} · ${item.category} · ${item.location} · ${item.expires}`));
     const actions = element('div', '', 'actions');
     actions.append(
       button(item.consumed ? '보관 복원' : '소비 완료', event => mutate(event.currentTarget, item, 'PATCH', { consumed: !item.consumed })),
@@ -151,7 +163,7 @@ function edit(item) {
   form.reset();
   byId('form-error').hidden = true;
   byId('form-title').textContent = item ? '식재료 수정' : '식재료 등록';
-  if (item) for (const key of ['name', 'quantity', 'location', 'expires']) form.elements.namedItem(key).value = item[key];
+  if (item) for (const key of ['name', 'quantity', 'category', 'location', 'expires']) form.elements.namedItem(key).value = item[key];
   editor.showModal();
 }
 
@@ -170,8 +182,25 @@ function renderFilteredItems() {
   renderItems();
 }
 
+const categoryBar = byId('categories');
+const categoryButtons = ['', ...categories].map(category => {
+  const control = button(category || '전체', () => {
+    selectedCategory = category;
+    renderFilteredItems();
+  });
+  control.dataset.category = category;
+  return control;
+});
+categoryBar.append(...categoryButtons);
+const categoryField = form.elements.namedItem('category');
+for (const category of categories) {
+  categoryField.add(new Option(category, category, category === defaultCategory));
+}
+
 function resetFilters() {
   search.value = '';
+  selectedCategory = '';
+  categoryBar.scrollLeft = 0;
   selectView('active');
   selectedLocations.clear();
   selectedExpiries.clear();

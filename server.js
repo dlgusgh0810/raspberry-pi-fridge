@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { installAuth } from './auth.js';
+import { categories, defaultCategory } from './public/categories.js';
 
 const DAY = 86_400_000;
 const locations = ['냉장', '냉동', '실온'];
@@ -23,6 +24,7 @@ export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()
     const date = today();
     const entries = (await items.find(req.owner ?? {}).sort({ expires: 1, _id: 1 }).toArray()).map(({ _id, owner, ...item }) => ({
       ...item,
+      category: item.category ?? defaultCategory,
       id: _id,
       daysLeft: (Date.parse(item.expires) - Date.parse(date)) / DAY,
     }));
@@ -31,9 +33,9 @@ export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()
 
   app.post('/api/items', async (req, res) => {
     const item = readItem(req.body);
-    if (!item) return res.status(400).json({ error: '식재료명, 수량, 보관 장소, 소비기한을 확인해 주세요.' });
+    if (!item) return res.status(400).json({ error: '식재료명, 수량, 분류, 보관 장소, 소비기한을 확인해 주세요.' });
     const id = randomUUID();
-    await items.insertOne({ ...item, ...req.owner, _id: id, consumed: false });
+    await items.insertOne({ category: defaultCategory, ...item, ...req.owner, _id: id, consumed: false });
     res.status(201).json({ id });
   });
 
@@ -65,14 +67,15 @@ export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()
 }
 
 function readItem(body) {
-  const { name, quantity, location, expires } = body ?? {};
+  const { name, quantity, location, expires, category } = body ?? {};
   if (typeof name !== 'string' || !name.trim() || name.trim().length > 60 ||
       typeof quantity !== 'string' || !quantity.trim() || quantity.trim().length > 30 ||
+      (category !== undefined && !categories.includes(category)) ||
       !locations.includes(location) || typeof expires !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(expires)) return null;
   const date = new Date(expires);
   if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== expires || expires.startsWith('0000')) return null;
-  return { name: name.trim(), quantity: quantity.trim(), location, expires };
+  return { name: name.trim(), quantity: quantity.trim(), location, expires, ...(category !== undefined && { category }) };
 }
 
 export function memoryItems(initial = []) {
@@ -98,14 +101,14 @@ export function memoryItems(initial = []) {
 function samples(timezone) {
   const date = new Intl.DateTimeFormat('sv-SE', { timeZone: timezone, dateStyle: 'short' }).format(new Date());
   return [
-    ['딸기', '1 팩', '냉장', -1],
-    ['우유', '1 병', '냉장', 0],
-    ['두부', '1 모', '냉장', 2],
-    ['계란', '6 개', '냉장', 8],
-    ['냉동 만두', '1 봉지', '냉동', 21],
-    ['파스타면', '500 g', '실온', 35],
-  ].map(([name, quantity, location, offset]) => ({
-    _id: randomUUID(), name, quantity, location, consumed: false,
+    ['딸기', '1 팩', '냉장', -1, '과일'],
+    ['우유', '1 병', '냉장', 0, '유제품/계란'],
+    ['두부', '1 모', '냉장', 2, '가공식품'],
+    ['계란', '6 개', '냉장', 8, '유제품/계란'],
+    ['냉동 만두', '1 봉지', '냉동', 21, '가공식품'],
+    ['파스타면', '500 g', '실온', 35, '곡물/면류'],
+  ].map(([name, quantity, location, offset, category]) => ({
+    _id: randomUUID(), name, quantity, location, category, consumed: false,
     expires: new Date(Date.parse(date) + offset * DAY).toISOString().slice(0, 10),
   }));
 }

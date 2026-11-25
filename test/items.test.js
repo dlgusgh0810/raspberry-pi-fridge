@@ -36,13 +36,15 @@ async function checkItems(t, items, storage, auth, cookie) {
   assert.equal((await request(path, 'POST', { ...tofu, expires: '2026-02-30' })).status, 400);
   assert.equal((await request(path, 'POST', { ...tofu, location: '기타' })).status, 400);
 
+  assert.equal((await request(path, 'POST', { ...tofu, category: '잘못된 분류' })).status, 400);
+
   async function add(item) {
     const response = await request(path, 'POST', item);
     assert.equal(response.status, 201);
     return (await response.json()).id;
   }
 
-  const tofuId = await add(tofu);
+  const tofuId = await add({ ...tofu, category: '가공식품' });
   const eggId = await add({ ...tofu, name: '계란', expires: '2026-11-24' });
   const milkId = await add({ ...tofu, name: '우유', expires: '2026-11-25' });
 
@@ -51,6 +53,8 @@ async function checkItems(t, items, storage, auth, cookie) {
   const list = await response.json();
   assert.equal(list.today, '2026-11-25');
   assert.equal(list.storage, storage);
+  assert.equal(list.entries.find(item => item.id === tofuId).category, '가공식품');
+  assert.equal(list.entries.find(item => item.id === milkId).category, '기타');
   assert.deepEqual(list.entries.map(({ id, daysLeft }) => [id, daysLeft]),
     [[eggId, -1], [milkId, 0], [tofuId, 3]]);
 
@@ -58,7 +62,10 @@ async function checkItems(t, items, storage, auth, cookie) {
   assert.equal((await request(path + '/' + tofuId, 'PATCH', { ...tofu, quantity: '2 모' })).status, 204);
   const reopened = await serve(t, items, auth);
   const updated = (await (await reopened(path, 'GET', undefined, cookie)).json()).entries.find(item => item.id === tofuId);
+  assert.equal(updated.category, '가공식품');
   assert.equal(updated.quantity, '2 모');
+  assert.equal((await request(path + '/' + tofuId, 'PATCH', { ...tofu, category: '양념' })).status, 204);
+  assert.equal((await (await request(path)).json()).entries.find(item => item.id === tofuId).category, '양념');
   assert.equal(updated.consumed, true);
   assert.equal((await request(path + '/' + tofuId, 'PATCH', { consumed: false })).status, 204);
   assert.equal((await request(path + '/' + eggId, 'DELETE')).status, 204);
@@ -68,6 +75,13 @@ async function checkItems(t, items, storage, auth, cookie) {
 
 test('체험 모드 HTTP 등록, 목록, 날짜, 수정, 소비 완료, 삭제', t =>
   checkItems(t, memoryItems(), 'demo'));
+
+test('분류 필드가 없는 기존 식재료는 기타로 표시', async t => {
+  const request = await serve(t, memoryItems([{ _id: 'legacy', expires: '2026-11-25' }]));
+  const response = await request('/api/items');
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).entries[0].category, '기타');
+});
 
 test('MongoDB 회원가입, 자동 로그인, 식재료 CRUD 및 계정 격리', { skip: !uri }, async t => {
   const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
