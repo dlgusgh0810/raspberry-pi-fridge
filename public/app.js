@@ -22,6 +22,10 @@ const byId = id => document.getElementById(id);
 const editor = byId('editor');
 const form = byId('item-form');
 const submit = form.querySelector('[type=submit]');
+const cancel = byId('cancel');
+const editorItemActions = byId('editor-item-actions');
+const editorConsume = byId('editor-consume');
+const editorDelete = byId('editor-delete');
 const views = [...document.querySelectorAll('[data-view]')];
 const locationFilters = [...document.querySelectorAll('[data-location]')];
 const expiryFilters = [...document.querySelectorAll('[data-expiry]')];
@@ -34,7 +38,7 @@ const inventory = byId('inventory-title').closest('section');
 let entries = [];
 let view = 'active';
 let selectedCategory = '';
-let editingId;
+let editingItem;
 let registering = false;
 let authPending = false;
 let viewVersion = 0;
@@ -118,8 +122,10 @@ function render() {
   priority.replaceChildren();
   if (urgent.length) {
     for (const item of urgent.slice(0, 3)) {
-      const card = element('div', '', 'priority-card');
-      const summary = element('div', '', 'item-summary');
+      const card = button('', () => edit(item, true));
+      card.className = 'priority-card';
+      card.setAttribute('aria-haspopup', 'dialog');
+      const summary = element('span', '', 'item-summary');
       summary.append(categoryIcon(item.category, 32), element('strong', item.name));
       card.append(summary, element('span', status(item)[0]));
       priority.append(card);
@@ -196,8 +202,9 @@ async function mutate(control, item, method, body) {
   }
 }
 
-function edit(item) {
-  editingId = item?.id;
+function edit(item, fromPriority = false) {
+  editingItem = item;
+  editorItemActions.hidden = !fromPriority;
   form.reset();
   byId('form-error').hidden = true;
   byId('form-title').textContent = item ? '식재료 수정' : '식재료 등록';
@@ -211,7 +218,13 @@ function edit(item) {
 }
 
 byId('add').addEventListener('click', () => edit());
-byId('cancel').addEventListener('click', () => editor.close());
+cancel.addEventListener('click', () => editor.close());
+editorConsume.addEventListener('click', () => {
+  saveEditor('/' + editingItem.id, 'PATCH', { consumed: true });
+});
+editorDelete.addEventListener('click', () => {
+  if (confirm(`${editingItem.name} 항목을 삭제할까요?`)) saveEditor('/' + editingItem.id, 'DELETE');
+});
 editor.addEventListener('cancel', event => { if (submit.disabled) event.preventDefault(); });
 function selectView(value) {
   view = value;
@@ -321,15 +334,20 @@ byId('reset-filters').addEventListener('click', () => {
   renderFilteredItems();
 });
 
-form.addEventListener('submit', async event => {
+form.addEventListener('submit', event => {
   event.preventDefault();
-  submit.disabled = byId('cancel').disabled = true;
+  const body = Object.fromEntries(new FormData(form));
+  saveEditor(editingItem ? '/' + editingItem.id : '', editingItem ? 'PATCH' : 'POST', body);
+});
+
+async function saveEditor(path, method, body) {
+  if (submit.disabled) return;
+  submit.disabled = cancel.disabled = editorConsume.disabled = editorDelete.disabled = true;
   const errorText = byId('form-error');
   errorText.hidden = true;
   tell();
   try {
-    const body = Object.fromEntries(new FormData(form));
-    await request(editingId ? '/' + editingId : '', editingId ? 'PATCH' : 'POST', body);
+    await request(path, method, body);
     editor.close();
     await load();
   } catch (error) {
@@ -338,9 +356,9 @@ form.addEventListener('submit', async event => {
       errorText.hidden = false;
     } else tell(error.message);
   } finally {
-    submit.disabled = byId('cancel').disabled = false;
+    submit.disabled = cancel.disabled = editorConsume.disabled = editorDelete.disabled = false;
   }
-});
+}
 
 function showAuth() {
   viewVersion++;
