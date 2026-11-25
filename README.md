@@ -35,6 +35,22 @@ npm start -- --assign-legacy 본인이_가입한_이메일
 
 시연할 때 식재료를 등록한 뒤 서버를 껐다 켜서 목록에 남아 있는지 확인하세요. 소비기한을 오늘로 설정하면 추천 영역에서 확인할 수 있고, 소비 완료를 누르면 해당 항목이 **소비 완료** 목록으로 이동합니다.
 
+## Raspberry Pi에서 Node.js 서버를 Docker로 실행
+
+기존 MongoDB 컨테이너를 실행한 상태에서 프로젝트 폴더의 `.env`에 기존 `MONGODB_URI`와 `MONGODB_DATABASE`를 유지하세요. `MONGODB_URI`에 포트나 인증 설정이 있다면 그대로 사용합니다. Docker에 넘기는 `.env` 값은 따옴표 없이 `KEY=value` 형식으로 씁니다.
+
+이전에 터미널에서 `npm start`로 웹 서버를 실행했다면 먼저 `Ctrl+C`로 정지하세요. 그런 다음 Pi에서 아래 명령을 실행합니다.
+
+```bash
+sudo docker build -t home-fridge:demo .
+sudo docker run --rm --init --name home-fridge \
+  --network host --env-file .env -e HOST=0.0.0.0 home-fridge:demo
+```
+
+Pi의 Linux 호스트 네트워크를 사용하므로 웹 컨테이너는 Pi에 공개된 MongoDB 포트에 기존 `127.0.0.1` 주소로 연결합니다. 웹 포트는 `.env`의 `PORT`를 따르며 기본값은 3000입니다. 같은 와이파이의 아이폰에서는 `http://<Pi의 LAN IP>:3000`을 열면 됩니다.
+
+시연 중 다른 터미널에서 `sudo docker image ls home-fridge`와 `sudo docker ps`를 실행하면 빌드한 이미지와 실행 중인 웹·DB 컨테이너를 보여줄 수 있습니다. 웹 서버는 실행 터미널의 `Ctrl+C`로 종료할 수 있고, MongoDB 컨테이너는 계속 실행됩니다.
+
 ## 화면 체험과 테스트
 
 ```bash
