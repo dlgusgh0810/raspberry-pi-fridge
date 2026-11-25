@@ -1,0 +1,9 @@
+{
+  "name": "raspberry-pi-fridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {"start": "node --env-file-if-exists=.env server.js", "demo": "node server.js --demo", "test": "node --test"},
+  "dependencies": {"express": "^5.1.0", "mongodb": "^6.21.0"}
+}

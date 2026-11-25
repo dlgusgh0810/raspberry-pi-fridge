@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f0">
+  <title>우리집 냉장고</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap brand"><span aria-hidden="true">❄</span> 우리집 냉장고 <time id="today"></time></div>
+  </header>
+  <main class="wrap">
+    <div class="intro">
+      <div><h1>우리집 냉장고</h1><p id="subtitle">식재료와 소비기한을 한눈에 관리하세요.</p></div>
+      <button type="button" class="primary" id="add">＋ 식재료 등록</button>
+    </div>
+    <p id="notice" role="status" hidden></p>
+    <section class="priority" aria-labelledby="priority-title">
+      <h2 id="priority-title">오늘 먼저 먹을 식재료</h2>
+      <div id="priority"></div>
+    </section>
+    <section class="inventory" aria-labelledby="inventory-title">
+      <div class="inventory-heading"><h2 id="inventory-title">식재료 목록</h2><span id="count"></span></div>
+      <div class="filters" aria-label="식재료 필터">
+        <button type="button" data-filter="active" aria-pressed="true">보관 중</button>
+        <button type="button" data-filter="urgent" aria-pressed="false">3일 이내</button>
+        <button type="button" data-filter="expired" aria-pressed="false">기한 경과</button>
+        <button type="button" data-filter="consumed" aria-pressed="false">소비 완료</button>
+      </div>
+      <ul id="items" class="items"></ul>
+    </section>
+  </main>
+  <dialog id="editor">
+    <form id="item-form">
+      <h2 id="form-title">식재료 등록</h2>
+      <label>식재료명 <input name="name" required maxlength="60" placeholder="예: 두부"></label>
+      <label>수량 <input name="quantity" required maxlength="30" placeholder="예: 1 모"></label>
+      <label>보관 장소 <select name="location"><option>냉장</option><option>냉동</option><option>실온</option></select></label>
+      <label>소비기한 <input name="expires" type="date" required min="0001-01-01" max="9999-12-31"></label>
+      <p id="form-error" role="alert" hidden></p>
+      <div class="actions"><button type="button" id="cancel">취소</button><button class="primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
