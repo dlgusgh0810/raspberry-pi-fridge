@@ -1,6 +1,7 @@
 import { categories, defaultCategory } from './categories.js';
 
 const categoryIcons = new Map([
+  ['', 'all'],
   ['채소', 'vegetables'],
   ['양념', 'seasoning'],
   ['해산물', 'seafood'],
@@ -47,6 +48,16 @@ function element(tag, text, className) {
   node.textContent = text;
   if (className) node.className = className;
   return node;
+}
+
+function categoryIcon(category, size) {
+  const icon = document.createElement('img');
+  const name = categoryIcons.get(category) ?? categoryIcons.get(defaultCategory);
+  icon.className = 'category-icon';
+  icon.alt = '';
+  icon.width = icon.height = size;
+  icon.src = `/category-icons/${name}.webp`;
+  return icon;
 }
 
 async function api(path, method = 'GET', body) {
@@ -142,7 +153,7 @@ function renderItems() {
     const count = category ? categoryCounts.get(category) ?? 0 : matches.length;
     const label = category || '전체';
     control.hidden = Boolean(category && refined && !count);
-    control.textContent = count ? `${label} (${count})` : label;
+    control.lastElementChild.textContent = count ? `${label} (${count})` : label;
     control.setAttribute('aria-pressed', category === selectedCategory);
   }
   const visible = selectedCategory ? matches.filter(item => item.category === selectedCategory) : matches;
@@ -153,16 +164,10 @@ function renderItems() {
   for (const item of visible) {
     const [label, tone] = status(item);
     const row = element('li', '', 'item');
-    const iconName = categoryIcons.get(item.category) ?? categoryIcons.get(defaultCategory);
-    const icon = document.createElement('img');
-    icon.className = 'item-icon';
-    icon.alt = '';
-    icon.width = icon.height = 44;
-    icon.src = `/category-icons/${iconName}.webp`;
     const summary = element('div', '', 'item-summary');
     const details = element('div', '', 'details');
     details.append(element('strong', item.name), element('small', `${item.quantity} · ${item.category} · ${item.location} · ${item.expires}`));
-    summary.append(icon, details);
+    summary.append(categoryIcon(item.category, 44), details);
     const actions = element('div', '', 'actions');
     actions.append(
       button(item.consumed ? '보관 복원' : '소비 완료', event => mutate(event.currentTarget, item, 'PATCH', { consumed: !item.consumed })),
@@ -194,7 +199,12 @@ function edit(item) {
   form.reset();
   byId('form-error').hidden = true;
   byId('form-title').textContent = item ? '식재료 수정' : '식재료 등록';
-  if (item) for (const key of ['name', 'quantity', 'category', 'location', 'expires']) form.elements.namedItem(key).value = item[key];
+  if (item) {
+    for (const key of ['name', 'quantity', 'location', 'expires']) form.elements.namedItem(key).value = item[key];
+    form.elements.category.value = categories.includes(item.category) ? item.category : defaultCategory;
+  }
+  categoryPicker.open = false;
+  updateCategorySummary();
   editor.showModal();
 }
 
@@ -215,18 +225,48 @@ function renderFilteredItems() {
 
 const categoryBar = byId('categories');
 const categoryButtons = ['', ...categories].map(category => {
-  const control = button(category || '전체', () => {
+  const control = button('', () => {
     selectedCategory = category;
     renderFilteredItems();
   });
+  control.append(categoryIcon(category, 24), element('span', category || '전체'));
   control.dataset.category = category;
   return control;
 });
 categoryBar.append(...categoryButtons);
-const categoryField = form.elements.namedItem('category');
+const categoryPicker = byId('category-picker');
+const categorySummary = byId('category-summary');
+const categoryOptions = byId('category-options');
 for (const category of categories) {
-  categoryField.add(new Option(category, category, category === defaultCategory));
+  const option = element('label', '');
+  const radio = document.createElement('input');
+  radio.type = 'radio';
+  radio.name = 'category';
+  radio.value = category;
+  radio.defaultChecked = category === defaultCategory;
+  option.append(categoryIcon(category, 28), element('span', category), radio);
+  categoryOptions.append(option);
 }
+
+function updateCategorySummary() {
+  const category = form.elements.category.value;
+  categorySummary.replaceChildren(categoryIcon(category, 28), element('span', category));
+}
+
+categoryOptions.addEventListener('change', updateCategorySummary);
+categoryOptions.addEventListener('click', event => {
+  if (event.target.matches('input') && event.detail > 0) {
+    categoryPicker.open = false;
+    categorySummary.focus();
+  }
+});
+categoryPicker.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && categoryPicker.open) {
+    event.preventDefault();
+    categoryPicker.open = false;
+    categorySummary.focus();
+  }
+});
 
 function resetFilters() {
   search.value = '';
