@@ -1,20 +1,20 @@
 import { categories, defaultCategory } from './categories.js';
 
 const categoryIcons = new Map([
-  ['채소', '🥬'],
-  ['양념', '🌶️'],
-  ['해산물', '🐟'],
-  ['조미료', '🧂'],
-  ['곡물/면류', '🍜'],
-  ['제빵', '🍞'],
-  ['과일', '🍎'],
-  ['육류', '🥩'],
-  ['가공식품', '🥫'],
-  ['음료', '🧃'],
-  ['건조', '🍄'],
-  ['유제품/계란', '🥚'],
-  ['절임', '🫙'],
-  [defaultCategory, '📦'],
+  ['채소', 'vegetables'],
+  ['양념', 'seasoning'],
+  ['해산물', 'seafood'],
+  ['조미료', 'condiments'],
+  ['곡물/면류', 'grains'],
+  ['제빵', 'bread'],
+  ['과일', 'fruit'],
+  ['육류', 'meat'],
+  ['가공식품', 'processed'],
+  ['음료', 'drinks'],
+  ['건조', 'dried'],
+  ['유제품/계란', 'dairy'],
+  ['절임', 'pickled'],
+  [defaultCategory, 'other'],
 ]);
 
 const byId = id => document.getElementById(id);
@@ -153,8 +153,12 @@ function renderItems() {
   for (const item of visible) {
     const [label, tone] = status(item);
     const row = element('li', '', 'item');
-    const icon = element('span', categoryIcons.get(item.category) ?? categoryIcons.get(defaultCategory), 'item-icon');
-    icon.setAttribute('aria-hidden', 'true');
+    const iconName = categoryIcons.get(item.category) ?? categoryIcons.get(defaultCategory);
+    const icon = document.createElement('img');
+    icon.className = 'item-icon';
+    icon.alt = '';
+    icon.width = icon.height = 44;
+    icon.src = `/category-icons/${iconName}.webp`;
     const summary = element('div', '', 'item-summary');
     const details = element('div', '', 'details');
     details.append(element('strong', item.name), element('small', `${item.quantity} · ${item.category} · ${item.location} · ${item.expires}`));

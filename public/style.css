@@ -45,15 +45,14 @@ button:disabled { opacity: .6; cursor: wait; }
 .item + .item { border-top: 1px solid var(--line); }
 .item-summary { display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .item-icon {
-  display: grid;
-  place-items: center;
+  display: block;
   flex: none;
   width: 2.75rem;
   height: 2.75rem;
   border: 1px solid var(--line);
   border-radius: .7rem;
   background: #eff3e9;
-  font: 1.45rem/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  object-fit: contain;
 }
 .details, .priority-card strong { overflow-wrap: anywhere; }
 .details small { display: block; color: #506559; margin-top: .2rem; }
