@@ -7,6 +7,13 @@ const icons = { 냉장: '❄', 냉동: '◈', 실온: '☼' };
 let entries = [];
 let filter = 'active';
 let editingId;
+let registering = false;
+let authPending = false;
+let viewVersion = 0;
+const authForm = byId('auth-form');
+const authSubmit = authForm.querySelector('[type=submit]');
+const passwordInput = authForm.elements.namedItem('password');
+const authError = byId('auth-error');
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -15,16 +22,24 @@ function element(tag, text, className) {
   return node;
 }
 
-async function request(path = '', method = 'GET', body) {
-  const response = await fetch('/api/items' + path, {
+async function api(path, method = 'GET', body) {
+  const response = await fetch('/api' + path, {
     method,
     ...(body && { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   });
   if (!response.ok) {
     const { error } = await response.json().catch(() => ({}));
+    if (response.status === 401 && path.startsWith('/items')) {
+      showAuth();
+      if (editor.open) editor.close();
+    }
     throw new Error(error || '서버 요청에 실패했어요.');
   }
   return response.status === 204 ? undefined : response.json();
+}
+
+function request(path = '', method = 'GET', body) {
+  return api('/items' + path, method, body);
 }
 
 function tell(message = '') {
@@ -34,7 +49,9 @@ function tell(message = '') {
 }
 
 async function load() {
+  const version = viewVersion;
   const data = await request();
+  if (version !== viewVersion) return;
   entries = data.entries;
   const date = byId('today');
   date.dateTime = data.today;
@@ -154,4 +171,74 @@ form.addEventListener('submit', async event => {
   }
 });
 
-load().catch(error => tell(error.message));
+function showAuth() {
+  viewVersion++;
+  entries = [];
+  render();
+  byId('fridge').hidden = byId('logout').hidden = byId('today').hidden = true;
+  byId('startup').hidden = true;
+  byId('auth').hidden = false;
+}
+
+async function showFridge(demo = false) {
+  viewVersion++;
+  byId('auth').hidden = byId('startup').hidden = true;
+  byId('fridge').hidden = byId('today').hidden = false;
+  byId('logout').hidden = demo;
+  filters[0].click();
+  tell();
+  try {
+    await load();
+  } catch (error) {
+    tell(error.message);
+  }
+}
+
+byId('switch-auth').addEventListener('click', () => {
+  registering = !registering;
+  const title = registering ? '회원가입' : '로그인';
+  byId('auth-title').textContent = authSubmit.textContent = title;
+  byId('switch-auth').textContent = registering ? '로그인으로 돌아가기' : '회원가입';
+  passwordInput.autocomplete = registering ? 'new-password' : 'current-password';
+  passwordInput.minLength = registering ? 8 : 0;
+  passwordInput.value = '';
+  authError.hidden = true;
+});
+
+authForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (authPending) return;
+  authPending = authSubmit.disabled = byId('switch-auth').disabled = true;
+  authError.hidden = true;
+  try {
+    await api('/auth/' + (registering ? 'register' : 'login'), 'POST', Object.fromEntries(new FormData(authForm)));
+    authForm.reset();
+    await showFridge();
+  } catch (error) {
+    authError.textContent = error.message;
+    authError.hidden = false;
+  } finally {
+    authPending = authSubmit.disabled = byId('switch-auth').disabled = false;
+    if (registering && byId('auth').hidden) byId('switch-auth').click();
+  }
+});
+
+byId('logout').addEventListener('click', async event => {
+  const control = event.currentTarget;
+  control.disabled = true;
+  try {
+    await api('/auth/logout', 'POST');
+    showAuth();
+  } catch (error) {
+    tell(error.message);
+  } finally {
+    control.disabled = false;
+  }
+});
+
+api('/auth/session').then(session => {
+  if (session.demo || session.email) return showFridge(session.demo);
+  showAuth();
+}).catch(error => {
+  byId('startup').textContent = error.message;
+});

@@ -2,11 +2,12 @@ import express from 'express';
 import { MongoClient } from 'mongodb';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { installAuth } from './auth.js';
 
 const DAY = 86_400_000;
 const locations = ['냉장', '냉동', '실온'];
 
-export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()) {
+export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date(), auth = null) {
   const dateFormat = new Intl.DateTimeFormat('sv-SE', {
     timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
   });
@@ -15,9 +16,12 @@ export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()
   app.use(express.json({ limit: '8kb' }));
   app.use(express.static(fileURLToPath(new URL('./public/', import.meta.url))));
 
-  app.get('/api/items', async (_req, res) => {
+  if (auth) installAuth(app, auth);
+  else app.get('/api/auth/session', (_req, res) => res.json({ demo: true }));
+
+  app.get('/api/items', async (req, res) => {
     const date = today();
-    const entries = (await items.find().sort({ expires: 1, _id: 1 }).toArray()).map(({ _id, ...item }) => ({
+    const entries = (await items.find(req.owner ?? {}).sort({ expires: 1, _id: 1 }).toArray()).map(({ _id, owner, ...item }) => ({
       ...item,
       id: _id,
       daysLeft: (Date.parse(item.expires) - Date.parse(date)) / DAY,
@@ -29,7 +33,7 @@ export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()
     const item = readItem(req.body);
     if (!item) return res.status(400).json({ error: '식재료명, 수량, 보관 장소, 소비기한을 확인해 주세요.' });
     const id = randomUUID();
-    await items.insertOne({ ...item, _id: id, consumed: false });
+    await items.insertOne({ ...item, ...req.owner, _id: id, consumed: false });
     res.status(201).json({ id });
   });
 
@@ -39,13 +43,13 @@ export function createApp(items, timezone = 'Asia/Seoul', now = () => new Date()
       ? { consumed: body.consumed }
       : readItem(body);
     if (!update) return res.status(400).json({ error: '수정할 정보를 확인해 주세요.' });
-    const result = await items.updateOne({ _id: req.params.id }, { $set: update });
+    const result = await items.updateOne({ _id: req.params.id, ...req.owner }, { $set: update });
     if (!result.matchedCount) return res.status(404).json({ error: '식재료를 찾을 수 없어요.' });
     res.sendStatus(204);
   });
 
   app.delete('/api/items/:id', async (req, res) => {
-    const result = await items.deleteOne({ _id: req.params.id });
+    const result = await items.deleteOne({ _id: req.params.id, ...req.owner });
     if (!result.deletedCount) return res.status(404).json({ error: '식재료를 찾을 수 없어요.' });
     res.sendStatus(204);
   });
@@ -118,14 +122,33 @@ async function start() {
   }
   const client = demo ? null : new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
   try {
+    let items = memoryItems();
+    let auth = null;
     if (client) {
       await client.connect();
-      await client.db(process.env.MONGODB_DATABASE || 'home_fridge').command({ ping: 1 });
+      const db = client.db(process.env.MONGODB_DATABASE || 'home_fridge');
+      items = db.collection('items');
+      auth = {
+        users: db.collection('users'),
+        sessions: db.collection('sessions'),
+        secure: process.env.COOKIE_SECURE === 'true',
+      };
+      await items.createIndex({ owner: 1, expires: 1, _id: 1 });
+      await auth.sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+      if (process.argv[2] === '--assign-legacy') {
+        const email = process.argv[3]?.trim().toLowerCase();
+        if (!email || !await auth.users.findOne({ _id: email })) {
+          throw new Error('먼저 가입한 이메일을 입력하세요.');
+        }
+        const result = await items.updateMany({ owner: { $exists: false } }, { $set: { owner: email } });
+        console.log(`기존 식재료 ${result.modifiedCount}개를 ${email} 계정에 연결했습니다.`);
+        await client.close();
+        return;
+      }
+    } else {
+      items = memoryItems(samples(timezone));
     }
-    const items = client
-      ? client.db(process.env.MONGODB_DATABASE || 'home_fridge').collection('items')
-      : memoryItems(samples(timezone));
-    const server = createApp(items, timezone).listen(port, host, () => {
+    const server = createApp(items, timezone, undefined, auth).listen(port, host, () => {
       console.log(`우리집 냉장고 · ${host}:${server.address().port} · ${client ? 'MongoDB' : 'demo'}`);
     });
     server.on('error', async error => {
