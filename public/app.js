@@ -121,7 +121,7 @@ function render() {
   const priority = byId('priority');
   priority.replaceChildren();
   if (urgent.length) {
-    for (const item of urgent.slice(0, 3)) {
+    for (const item of urgent) {
       const card = button('', () => edit(item, true));
       card.className = 'priority-card';
       card.setAttribute('aria-haspopup', 'dialog');

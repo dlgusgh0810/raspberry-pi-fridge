@@ -25,7 +25,7 @@ button:disabled { opacity: .6; cursor: wait; }
 .primary { background: var(--green); color: #fff; padding: .72rem 1rem; font-weight: 700; }
 .primary:hover { background: #194634; }
 .priority { background: #e7efdf; border: 1px solid #d7e4ce; border-radius: 1rem; padding: 1.2rem; }
-#priority { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(175px, 100%), 1fr)); gap: .65rem; margin-top: .85rem; }
+#priority { display: grid; grid-template-columns: minmax(0, 1fr); gap: .65rem; margin-top: .85rem; }
 .priority-card { display: flex; justify-content: space-between; align-items: center; gap: .5rem; background: #fff; padding: .85rem; border-radius: .7rem; text-align: left; }
 .priority-card > span:last-child { color: #83401d; font-size: .85rem; font-weight: 700; white-space: nowrap; }
 .inventory { padding-block: 1.7rem 3rem; }
