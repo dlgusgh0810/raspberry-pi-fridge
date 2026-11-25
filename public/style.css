@@ -31,8 +31,10 @@ button:disabled { opacity: .6; cursor: wait; }
 .inventory { padding-block: 1.7rem 3rem; }
 .inventory-heading, .filters, .actions { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
 .inventory-heading span { color: #506559; font-size: .9rem; }
-#reset-filters { margin-left: auto; }
-.inventory-search { display: grid; gap: .35rem; margin-top: .85rem; }
+#toggle-search { margin-left: auto; }
+#search-panel { margin-block: .65rem; padding: .85rem; border: 1px solid var(--line); border-radius: .75rem; background: #fff; }
+.inventory > .items { margin-top: .65rem; }
+.inventory-search { display: grid; gap: .35rem; }
 .inventory-search input { width: 100%; }
 .filter-groups { display: flex; flex-wrap: wrap; gap: .75rem 1.2rem; margin-block: .85rem; }
 .filter-group { min-width: 0; margin: 0; padding: 0; border: 0; }

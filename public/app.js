@@ -6,6 +6,8 @@ const views = [...document.querySelectorAll('[data-view]')];
 const locationFilters = [...document.querySelectorAll('[data-location]')];
 const expiryFilters = [...document.querySelectorAll('[data-expiry]')];
 const search = byId('item-search');
+const searchPanel = byId('search-panel');
+const searchToggle = byId('toggle-search');
 const selectedLocations = new Set();
 const selectedExpiries = new Set();
 const inventory = byId('inventory-title').closest('section');
@@ -176,6 +178,22 @@ function resetFilters() {
   for (const control of [...locationFilters, ...expiryFilters]) control.setAttribute('aria-pressed', 'false');
 }
 
+function setSearchOpen(open) {
+  searchPanel.hidden = !open;
+  searchToggle.setAttribute('aria-expanded', open);
+  searchToggle.textContent = open ? '검색 닫기' : '검색';
+}
+
+searchToggle.addEventListener('click', () => {
+  if (searchPanel.hidden) {
+    setSearchOpen(true);
+  } else {
+    resetFilters();
+    renderFilteredItems();
+    setSearchOpen(false);
+  }
+});
+
 for (const control of views) control.addEventListener('click', () => {
   selectView(control.dataset.view);
   renderFilteredItems();
@@ -234,6 +252,7 @@ async function showFridge(demo = false) {
   byId('fridge').hidden = byId('today').hidden = false;
   byId('logout').hidden = demo;
   inventory.style.minBlockSize = '';
+  setSearchOpen(false);
   resetFilters();
   renderItems();
   tell();

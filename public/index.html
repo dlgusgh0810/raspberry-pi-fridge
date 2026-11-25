@@ -38,36 +38,39 @@
       <div class="inventory-heading">
         <h2 id="inventory-title">식재료 목록</h2>
         <span id="count" role="status"></span>
-        <button type="button" id="reset-filters">초기화</button>
+        <button type="button" id="toggle-search" aria-expanded="false" aria-controls="search-panel">검색</button>
       </div>
-      <label class="inventory-search">식재료 이름 검색
-        <input id="item-search" type="search" placeholder="예: 우유" autocomplete="off" enterkeyhint="search">
-      </label>
-      <div class="filter-groups">
-        <fieldset class="filter-group">
-          <legend>목록 보기</legend>
-          <div class="filters">
-            <button type="button" data-view="active" aria-pressed="true">보관 중</button>
-            <button type="button" data-view="consumed" aria-pressed="false">소비 완료</button>
-            <button type="button" data-view="all" aria-pressed="false">전체</button>
-          </div>
-        </fieldset>
-        <fieldset class="filter-group">
-          <legend>보관 장소</legend>
-          <div class="filters">
-            <button type="button" data-location="냉장" aria-pressed="false">냉장</button>
-            <button type="button" data-location="냉동" aria-pressed="false">냉동</button>
-            <button type="button" data-location="실온" aria-pressed="false">실온</button>
-          </div>
-        </fieldset>
-        <fieldset class="filter-group">
-          <legend>소비기한</legend>
-          <div class="filters">
-            <button type="button" data-expiry="urgent" aria-pressed="false">3일 이내</button>
-            <button type="button" data-expiry="expired" aria-pressed="false">기한 경과</button>
-            <button type="button" data-expiry="fresh" aria-pressed="false">4일 이상</button>
-          </div>
-        </fieldset>
+      <div id="search-panel" hidden>
+        <label class="inventory-search">식재료 이름 검색
+          <input id="item-search" type="search" placeholder="예: 우유" autocomplete="off" enterkeyhint="search">
+        </label>
+        <div class="filter-groups">
+          <fieldset class="filter-group">
+            <legend>목록 보기</legend>
+            <div class="filters">
+              <button type="button" data-view="active" aria-pressed="true">보관 중</button>
+              <button type="button" data-view="consumed" aria-pressed="false">소비 완료</button>
+              <button type="button" data-view="all" aria-pressed="false">전체</button>
+            </div>
+          </fieldset>
+          <fieldset class="filter-group">
+            <legend>보관 장소</legend>
+            <div class="filters">
+              <button type="button" data-location="냉장" aria-pressed="false">냉장</button>
+              <button type="button" data-location="냉동" aria-pressed="false">냉동</button>
+              <button type="button" data-location="실온" aria-pressed="false">실온</button>
+            </div>
+          </fieldset>
+          <fieldset class="filter-group">
+            <legend>소비기한</legend>
+            <div class="filters">
+              <button type="button" data-expiry="urgent" aria-pressed="false">3일 이내</button>
+              <button type="button" data-expiry="expired" aria-pressed="false">기한 경과</button>
+              <button type="button" data-expiry="fresh" aria-pressed="false">4일 이상</button>
+            </div>
+          </fieldset>
+        </div>
+        <button type="button" id="reset-filters">초기화</button>
       </div>
       <ul id="items" class="items"></ul>
     </section>
