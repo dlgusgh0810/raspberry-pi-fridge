@@ -43,6 +43,18 @@ button:disabled { opacity: .6; cursor: wait; }
 .items { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: .9rem; background: #fff; }
 .item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .8rem; padding: .8rem; }
 .item + .item { border-top: 1px solid var(--line); }
+.item-summary { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+.item-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: .7rem;
+  background: #eff3e9;
+  font: 1.45rem/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
 .details, .priority-card strong { overflow-wrap: anywhere; }
 .details small { display: block; color: #506559; margin-top: .2rem; }
 .actions button { font-size: .85rem; }

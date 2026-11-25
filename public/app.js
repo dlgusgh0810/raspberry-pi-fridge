@@ -1,5 +1,22 @@
 import { categories, defaultCategory } from './categories.js';
 
+const categoryIcons = new Map([
+  ['채소', '🥬'],
+  ['양념', '🌶️'],
+  ['해산물', '🐟'],
+  ['조미료', '🧂'],
+  ['곡물/면류', '🍜'],
+  ['제빵', '🍞'],
+  ['과일', '🍎'],
+  ['육류', '🥩'],
+  ['가공식품', '🥫'],
+  ['음료', '🧃'],
+  ['건조', '🍄'],
+  ['유제품/계란', '🥚'],
+  ['절임', '🫙'],
+  [defaultCategory, '📦'],
+]);
+
 const byId = id => document.getElementById(id);
 const editor = byId('editor');
 const form = byId('item-form');
@@ -136,8 +153,12 @@ function renderItems() {
   for (const item of visible) {
     const [label, tone] = status(item);
     const row = element('li', '', 'item');
+    const icon = element('span', categoryIcons.get(item.category) ?? categoryIcons.get(defaultCategory), 'item-icon');
+    icon.setAttribute('aria-hidden', 'true');
+    const summary = element('div', '', 'item-summary');
     const details = element('div', '', 'details');
     details.append(element('strong', item.name), element('small', `${item.quantity} · ${item.category} · ${item.location} · ${item.expires}`));
+    summary.append(icon, details);
     const actions = element('div', '', 'actions');
     actions.append(
       button(item.consumed ? '보관 복원' : '소비 완료', event => mutate(event.currentTarget, item, 'PATCH', { consumed: !item.consumed })),
@@ -146,7 +167,7 @@ function renderItems() {
         if (confirm(`${item.name} 항목을 삭제할까요?`)) mutate(event.currentTarget, item, 'DELETE');
       }),
     );
-    row.append(details, element('span', label, `badge ${tone}`), actions);
+    row.append(summary, element('span', label, `badge ${tone}`), actions);
     list.append(row);
   }
 }
